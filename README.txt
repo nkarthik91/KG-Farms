@@ -1,91 +1,77 @@
-KG Farms + Sales - Feed Transfer + Farms Page Enhancements
+KG Farms + Sales - Why you don't see "Transfer Feed"
 
-I want to be upfront about something first: while building this, I made
-a real mistake mid-edit - a str_replace meant only as an insertion point
-accidentally deleted two working branches from a function
-(refreshCurrentPage), which would have broken refresh-after-action on
-the Batch Details and Sales pages. I caught it by re-reading the
-function immediately after the edit, before testing or packaging
-anything - fixed it, verified it against what the function should be,
-and then separately re-tested all six page branches individually to
-confirm each one actually works. Telling you this because I'd rather
-you know it happened and was caught than not mention it.
+I rendered the Feed page from the actual current code and the button
+is there - top right of the Feed page, next to "Order Cart", plus a
+"Feed Transfer History" section at the bottom of that same page. So
+the code is not the problem. Two most likely real explanations, in
+order of likelihood:
 
 ====================================================================
-NEW: FEED TRANSFER BETWEEN BATCHES
+MOST LIKELY: YOUR SITE IS RUNNING AN OLDER SERVICE WORKER
 ====================================================================
 
-New "Transfer Feed" button on the Feed page. Pick a source batch, a
-destination batch, a feed type (BPSC/BSC/BFP), and a quantity - the
-transfer:
-- Reduces the SOURCE batch's available stock
-- Increases the DESTINATION batch's supplied total (which correctly
-  feeds into their required-vs-supplied balance, exactly like a normal
-  delivery would)
+A few rounds back, I fixed this app's service worker so it always
+fetches the newest files instead of serving old cached ones. But that
+fix only takes effect once your BROWSER has actually picked up the new
+sw.js file and it's taken over. If your live site was already running
+before that fix went out, and your phone/browser never happened to
+pick up the newer sw.js in between, you could still be stuck on the
+OLD, pre-fix service worker right now - which WOULD explain seeing an
+old version of the app no matter how many times you reload.
 
-A live "Available at source: X bags" hint updates as you change the
-source batch or feed type, so you can see what's actually available
-before attempting the transfer. Validated both client-side (instant
-feedback - can't pick the same batch twice, can't submit a zero
-quantity) and server-side (can't exceed what's actually available,
-can't transfer to/from a closed batch) - server-side is the real
-source of truth, client-side is just for a faster, friendlier no-
-round-trip response on obvious mistakes.
+I bumped the service worker's internal version number again this round
+specifically to force this - but the file still needs to physically
+reach your browser once for it to matter.
 
-A new "Feed Transfer History" section on the Feed page shows every
-transfer that's happened - who gave, who received, when, how much,
-and any remarks.
+FASTEST WAY TO KNOW FOR SURE (2 minutes, and this is the one I'd
+actually do first):
+1. Open your KG Farms URL in an incognito / private browsing window
+   (this skips your service worker and all caching entirely).
+2. Log in and go to the Feed page.
+3. If "Transfer Feed" shows up there - it's 100% a caching issue on
+   your regular browser, not a missing feature. Go to step 4.
+4. Close incognito. On your regular browser: remove any home-screen
+   icon for KG Farms if you added one, then go into your browser's
+   site settings and clear stored data specifically for your KG Farms
+   site (or just clear the last 24 hours of browsing data). Reopen the
+   site fresh.
 
-HOW THIS WAS BUILT TO NOT CONFLICT WITH EXISTING DATA: rather than
-overwrite a farmer's actual reported stock number, transfers are
-tracked in their own ledger and layered on top of the existing
-calculation - a batch's available stock is now "what was last reported
-in a Daily Entry, minus any transfers out since that report." This
-means a farmer's own daily entries stay exactly as they reported them;
-transfers are additional, separate history, not edits to existing
-records.
-
-====================================================================
-FARMS PAGE - SORTING, STATUS, SEARCH
-====================================================================
-
-- Fixed a real bug: batch dates were being sorted as plain text, so
-  "01-09" sorted before "25-08" even though August comes first
-  chronologically. Now parsed and compared as actual dates.
-- Defaults to oldest-first; a dropdown lets you switch to Newest
-  First, Farm Name A-Z, or Batch ID A-Z.
-- Active / Closed / All filter tabs, plus a status badge and a one-tap
-  close/reopen button per row - this reuses backend logic that already
-  existed and was already tested, it just wasn't surfaced on this page
-  before.
-- The search box added previously still works alongside all of this.
-
-Caught and fixed two real CSS bugs while building this (found by
-screenshotting, not by guessing): a status badge crowding into the
-neighboring table column on desktop, and a completely different bug
-on mobile where an existing, unrelated CSS rule (meant only for the
-batch ID text) was also grabbing the new badge and stretching it full
-width.
+If "Transfer Feed" does NOT show up even in incognito, that points to
+deployment instead - see below.
 
 ====================================================================
-WHAT I DIDN'T GET TO THIS ROUND
+SECOND POSSIBILITY: THE LATEST APP.JS ISN'T ACTUALLY DEPLOYED
 ====================================================================
 
-Still outstanding from your fuller list: IndexedDB migration, splitting
-app.js by page, a payout confirmation/review step, and PDF export for
-Trader Statement and Payout. None of these touch what shipped here -
-happy to pick any of them up next.
+If several files have gone out across the last few rounds, it's easy
+for one to get missed. Quick way to check without guessing: open this
+directly in your browser (replace with your actual site URL):
+
+  https://yoursite/app.js
+
+Then search the page (Ctrl+F / Cmd+F) for the text "Transfer Feed". If
+it's not there, the file sitting on your server is still an older one
+- re-upload the app.js from this package and that resolves it
+immediately, no further troubleshooting needed.
+
+====================================================================
+WHAT'S IN THIS PACKAGE
+====================================================================
+
+Same app.js as last round (Feed Transfer + the Feed Return fix, both
+still confirmed present and working) plus sw.js with its version
+bumped again, to maximize the chance your browser treats it as new and
+updates promptly. Full file set included as always so there's no
+ambiguity about what's current.
 
 ====================================================================
 DEPLOY
 ====================================================================
 
-1. Replace app.js, index.html, styles.css, sw.js, manifest.json, the
-   icons/ folder, favicon.ico, and favicon-32.png on GitHub Pages.
-2. Update Code.gs in Apps Script and redeploy: Deploy > Manage
-   deployments > Edit > New version > Deploy. This round added a new
-   sheet ("Feed Transfers") and new backend functions - saving alone
-   will not push this live.
-3. The new "Feed Transfers" sheet will be created automatically the
-   first time it's needed (same as how other sheets in this app already
-   work) - no manual spreadsheet setup required.
+Replace all files as usual. Code.gs is unchanged - no Apps Script
+redeploy needed this round.
+
+After uploading, please try the incognito-window check above BEFORE
+anything else - it'll tell us in under a minute whether this is a
+caching issue (very likely, and requires no further code changes) or
+something else, and save us both a round of guessing.
