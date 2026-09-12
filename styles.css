@@ -245,7 +245,7 @@ button:disabled{cursor:not-allowed}
 .rateBulkBar{display:flex;gap:8px;align-items:end;flex-wrap:wrap;margin:0 0 12px;padding:10px;background:#f7faf7;border:1px solid var(--line);border-radius:11px}.rateBulkBar label{min-width:170px}.rateBulkBar .rateInput{margin-top:4px}
 
 /* v48 requested UI cleanup */
-.addBatchIcon{display:none}.farmsMobile{display:none}.farmMobileCard{background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px;margin-bottom:9px;box-shadow:0 3px 12px rgba(20,50,25,.05)}.farmMobileHead{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}.farmMobileHead>div{min-width:0}.farmMobileHead b{display:block;font-size:15px}.farmMobileHead span:not(.farmMobileNo){display:block;color:var(--muted);font-size:11px;margin-top:3px}.farmMobileNo{font-size:10px;font-weight:800;color:var(--muted);background:#f3f7f3;padding:4px 7px;border-radius:8px}.farmMobileGrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:11px}.farmMobileGrid>div{background:#f7faf7;border-radius:9px;padding:8px}.farmMobileGrid span{display:block;font-size:8px;color:var(--muted);font-weight:800}.farmMobileGrid b{display:block;font-size:12px;margin-top:3px}.farmMobileActions{display:flex;justify-content:flex-end;gap:7px;margin-top:10px}.iconBtn{width:38px;height:36px;border:1px solid var(--line);border-radius:9px;background:#fff;font-size:18px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer}
+.addBatchIcon{display:none}.farmsMobile{display:none}.farmMobileCard{background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px;margin-bottom:9px;box-shadow:0 3px 12px rgba(20,50,25,.05)}.farmMobileHead{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}.farmMobileHead>div{min-width:0}.farmMobileHead b{display:block;font-size:15px}.farmMobileHead span:not(.farmMobileNo):not(.statusBadge){display:block;color:var(--muted);font-size:11px;margin-top:3px}.farmMobileNo{font-size:10px;font-weight:800;color:var(--muted);background:#f3f7f3;padding:4px 7px;border-radius:8px}.farmMobileGrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:11px}.farmMobileGrid>div{background:#f7faf7;border-radius:9px;padding:8px}.farmMobileGrid span{display:block;font-size:8px;color:var(--muted);font-weight:800}.farmMobileGrid b{display:block;font-size:12px;margin-top:3px}.farmMobileActions{display:flex;justify-content:flex-end;gap:7px;margin-top:10px}.iconBtn{width:38px;height:36px;border:1px solid var(--line);border-radius:9px;background:#fff;font-size:18px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer}
 .iconBtn.danger{border-color:#f3c6c1;color:#b42318}
 .iconBtn.danger:hover{background:#fdeceb}
 .iconBtn.primary{background:var(--g);border-color:var(--g);color:#fff}
@@ -258,6 +258,21 @@ button:disabled{cursor:not-allowed}
 @media(min-width:761px){.syncStatus{padding:8px 24px}}
 .farmSearchWrap{margin-bottom:14px}
 .farmSearchWrap input{width:100%;padding:10px 14px;border:1px solid var(--line);border-radius:11px;font-size:14px}
+.transferRow{padding:10px 4px;border-bottom:1px solid var(--line);font-size:13px}
+.transferRow:last-child{border-bottom:0}
+.transferRowMain{font-weight:600}
+.transferArrow{margin:0 8px;color:var(--g);font-weight:800}
+.transferRowMeta{font-size:11px;margin-top:3px}
+.farmToolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;margin-bottom:14px}
+.farmStatusTabs{display:flex;gap:4px;background:#f2f5f2;border-radius:10px;padding:3px}
+.farmStatusTab{background:transparent;color:var(--muted);border:0;padding:7px 14px;font-size:12px;font-weight:700;border-radius:8px;min-height:0}
+.farmStatusTab.active{background:#fff;color:var(--g);box-shadow:0 1px 4px rgba(20,50,25,.12)}
+#farmSortSelect{padding:8px 12px;border:1px solid var(--line);border-radius:9px;font-size:12px;font-weight:700;color:var(--text);background:#fff}
+.statusBadge{display:inline-block;font-size:9px;font-weight:800;padding:2px 7px;border-radius:20px;text-transform:uppercase;letter-spacing:.3px;vertical-align:middle}
+.statusBadgeBlock{display:block!important;width:fit-content;margin-top:4px}
+.statusBadge.statusActive{background:#e3f4e6;color:var(--g)}
+.statusBadge.statusClosed{background:#f2f2f2;color:var(--muted)}
+@media(max-width:760px){.farmToolbar{flex-direction:column;align-items:stretch}}
 @media(max-width:760px){
   .roleBadge{font-size:9px;padding:3px 7px}
   .topBtns{gap:6px}

@@ -1,110 +1,80 @@
-KG Farms + Sales - User-Friendliness Pass
+KG Farms + Sales - Feed Transfer + Farms Page Enhancements
 
-Five focused enhancements this round, each built, tested, and verified
-working - not just added and assumed correct.
-
-====================================================================
-WHAT'S NEW
-====================================================================
-
-1. ONLINE/OFFLINE + "LAST SYNCED" INDICATOR
-   A thin status bar now appears at the top of every page - but only
-   when it has something useful to say. When everything's fresh and
-   connected, it stays hidden entirely so it doesn't clutter the UI.
-   Goes red and shows "Offline - showing data from X ago" the moment
-   the connection drops (tested by actually simulating offline mode,
-   not just reading the code), so you always know if what you're
-   looking at might be stale before you act on it. Comes back and
-   auto-refreshes the moment connectivity returns.
-
-2. SESSION-EXPIRY WARNING
-   Your login token is refreshed automatically on every action, so it
-   only actually expires after ~6 hours of true inactivity. The app
-   now warns you once, proactively, if you've been idle for a while
-   and are approaching that cutoff - "save any work in progress and
-   refresh" - instead of you finding out the hard way when a save
-   suddenly fails.
-
-3. APP SHORTCUTS
-   Long-press (or right-click, on desktop PWA installs) the KG Farms
-   icon and you'll now see "Daily Entry" and "New Sale" as direct
-   shortcuts straight to those pages - skips the trip through the app
-   for the two things you probably do most often.
-
-4. SEARCH ON THE FARMS PAGE
-   A search box now sits above the batch list - type a farm name or
-   batch ID and the list filters instantly, both the desktop table and
-   mobile cards. Shows a clear "no matches" message rather than a
-   blank list if nothing's found. This is the page that will matter
-   most as your batch history grows.
-
-5. ICON FILE SIZE - CUT BY ~90%
-   Your app icons and logo were larger than they needed to be for flat
-   two-color graphics (a combined ~600KB across all sizes). Recompressed
-   with proper palette optimization - visually identical at every size
-   I checked, now a combined ~60KB. Every install and every cache
-   refresh is now meaningfully lighter.
+I want to be upfront about something first: while building this, I made
+a real mistake mid-edit - a str_replace meant only as an insertion point
+accidentally deleted two working branches from a function
+(refreshCurrentPage), which would have broken refresh-after-action on
+the Batch Details and Sales pages. I caught it by re-reading the
+function immediately after the edit, before testing or packaging
+anything - fixed it, verified it against what the function should be,
+and then separately re-tested all six page branches individually to
+confirm each one actually works. Telling you this because I'd rather
+you know it happened and was caught than not mention it.
 
 ====================================================================
-FULL ENGAGEMENT SUMMARY - WHERE THIS APP STANDS NOW
+NEW: FEED TRANSFER BETWEEN BATCHES
 ====================================================================
 
-Across this whole review-and-fix process, here's everything that
-changed, grouped by what it actually fixed or added:
+New "Transfer Feed" button on the Feed page. Pick a source batch, a
+destination batch, a feed type (BPSC/BSC/BFP), and a quantity - the
+transfer:
+- Reduces the SOURCE batch's available stock
+- Increases the DESTINATION batch's supplied total (which correctly
+  feeds into their required-vs-supplied balance, exactly like a normal
+  delivery would)
 
-REAL BUGS FOUND AND FIXED
-- Edit Batch / Batch History were completely non-functional (a quote-
-  collision in generated HTML broke the click handlers entirely) -
-  this was the "editing farms isn't working" / "bs is not defined"
-  issue, tracked down by actually clicking the buttons, not just
-  reading the code.
-- Mobile header was wrapping onto two lines on every page - the real
-  cause behind what looked like "Farms page is broken" at a glance.
-- A previous incomplete edit had left 3 buttons rendering as
-  completely blank, invisible clickable boxes.
-- Service worker was cache-first, meaning updates could get stuck
-  indefinitely behind old cached files - switched to network-first.
-- Auth token was exposed in a URL (now in the request body, where
-  the rest of the app already correctly kept it).
-- Version numbers were out of sync between the app and its own cache
-  keys, meaning some updates might not have reached already-cached
-  users.
-- A stray duplicate HTML tag, two functions each defined twice, and a
-  dead duplicate Code.js file - all cleaned up.
-- An entire "FCR Slabs" feature was dead code end to end - a stub
-  that did nothing, functions that were never actually wired up, and
-  a data field the app never read. Removed rather than left to
-  confuse anyone reading the code later.
-- An unused, redundant duplicate of the farm-rename logic - removed.
+A live "Available at source: X bags" hint updates as you change the
+source batch or feed type, so you can see what's actually available
+before attempting the transfer. Validated both client-side (instant
+feedback - can't pick the same batch twice, can't submit a zero
+quantity) and server-side (can't exceed what's actually available,
+can't transfer to/from a closed batch) - server-side is the real
+source of truth, client-side is just for a faster, friendlier no-
+round-trip response on obvious mistakes.
 
-USER-FRIENDLINESS / UI
-- Every Add, Delete, and Edit action across the whole app converted
-  to compact icon buttons - with delete specifically given a red tint
-  so a destructive action still reads as different from a routine one
-  even without the word "Delete" next to it.
-- Navigation buttons deliberately left as text-only, as asked.
-- The five enhancements above.
+A new "Feed Transfer History" section on the Feed page shows every
+transfer that's happened - who gave, who received, when, how much,
+and any remarks.
 
-DEPLOYMENT / RELIABILITY
-- Every round of changes was verified by actually rendering the app
-  and clicking through the real flows - login, editing a batch,
-  generating reports, searching, going offline - rather than trusting
-  that code which "looks right" behaves right. Several real bugs in
-  this app were only found this way.
-- Not touched, and worth someone's attention eventually: a few sales-
-  sheet column names that are a bit misleading if you're reading the
-  raw spreadsheet directly, and a pre-existing single unclosed HTML
-  tag that's present but harmless (every page still renders correctly
-  around it).
+HOW THIS WAS BUILT TO NOT CONFLICT WITH EXISTING DATA: rather than
+overwrite a farmer's actual reported stock number, transfers are
+tracked in their own ledger and layered on top of the existing
+calculation - a batch's available stock is now "what was last reported
+in a Daily Entry, minus any transfers out since that report." This
+means a farmer's own daily entries stay exactly as they reported them;
+transfers are additional, separate history, not edits to existing
+records.
 
-WHERE I'D LOOK NEXT, IF YOU WANT TO KEEP GOING
-- An offline write queue, so a save attempted with no signal isn't
-  simply lost.
-- An audit trail on sales/payouts - who changed what, and when -
-  since this app now handles real money.
-- A review-before-finalizing step on generated payouts.
-- Splitting the 125KB app.js so pages you don't use don't have to
-  load before the app is usable.
+====================================================================
+FARMS PAGE - SORTING, STATUS, SEARCH
+====================================================================
+
+- Fixed a real bug: batch dates were being sorted as plain text, so
+  "01-09" sorted before "25-08" even though August comes first
+  chronologically. Now parsed and compared as actual dates.
+- Defaults to oldest-first; a dropdown lets you switch to Newest
+  First, Farm Name A-Z, or Batch ID A-Z.
+- Active / Closed / All filter tabs, plus a status badge and a one-tap
+  close/reopen button per row - this reuses backend logic that already
+  existed and was already tested, it just wasn't surfaced on this page
+  before.
+- The search box added previously still works alongside all of this.
+
+Caught and fixed two real CSS bugs while building this (found by
+screenshotting, not by guessing): a status badge crowding into the
+neighboring table column on desktop, and a completely different bug
+on mobile where an existing, unrelated CSS rule (meant only for the
+batch ID text) was also grabbing the new badge and stretching it full
+width.
+
+====================================================================
+WHAT I DIDN'T GET TO THIS ROUND
+====================================================================
+
+Still outstanding from your fuller list: IndexedDB migration, splitting
+app.js by page, a payout confirmation/review step, and PDF export for
+Trader Statement and Payout. None of these touch what shipped here -
+happy to pick any of them up next.
 
 ====================================================================
 DEPLOY
@@ -113,7 +83,9 @@ DEPLOY
 1. Replace app.js, index.html, styles.css, sw.js, manifest.json, the
    icons/ folder, favicon.ico, and favicon-32.png on GitHub Pages.
 2. Update Code.gs in Apps Script and redeploy: Deploy > Manage
-   deployments > Edit > New version > Deploy.
-3. No manual cache-clearing should be needed this time - the network-
-   first service worker means updates reach users automatically the
-   next time they open the app with a connection.
+   deployments > Edit > New version > Deploy. This round added a new
+   sheet ("Feed Transfers") and new backend functions - saving alone
+   will not push this live.
+3. The new "Feed Transfers" sheet will be created automatically the
+   first time it's needed (same as how other sheets in this app already
+   work) - no manual spreadsheet setup required.
