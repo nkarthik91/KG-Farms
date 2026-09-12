@@ -250,6 +250,14 @@ button:disabled{cursor:not-allowed}
 .iconBtn.danger:hover{background:#fdeceb}
 .iconBtn.primary{background:var(--g);border-color:var(--g);color:#fff}
 .topBtns button .btnIcon{display:none}
+.syncStatus{display:none;align-items:center;gap:6px;font-size:11px;font-weight:700;padding:6px 15px;color:var(--muted);background:#f7faf7;border-bottom:1px solid var(--line)}
+.syncStatus.show{display:flex}
+.syncStatus.offline{background:#fdeceb;color:#b42318}
+.syncStatus .dot{width:7px;height:7px;border-radius:50%;background:#3a9b4f;flex-shrink:0}
+.syncStatus.offline .dot{background:#b42318}
+@media(min-width:761px){.syncStatus{padding:8px 24px}}
+.farmSearchWrap{margin-bottom:14px}
+.farmSearchWrap input{width:100%;padding:10px 14px;border:1px solid var(--line);border-radius:11px;font-size:14px}
 @media(max-width:760px){
   .roleBadge{font-size:9px;padding:3px 7px}
   .topBtns{gap:6px}
