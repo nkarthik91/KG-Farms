@@ -1,5 +1,33 @@
 KG Farms + Sales - Fixed & Polished
 
+====================================================================
+LATEST FIX - EDIT BATCH / BATCH HISTORY WAS COMPLETELY BROKEN
+====================================================================
+
+This is the bug behind "editing farms is not working" and the "bs is
+not defined" error you saw. Found it by actually clicking the buttons
+in a test browser, not just reading the code - the Edit Batch and
+Batch History buttons on the Farms page were generating malformed
+HTML.
+
+The cause: the code built each button's onclick attribute like
+onclick="batch('+jsBid+')" where jsBid comes from
+JSON.stringify(batchId) - which produces a DOUBLE-quoted string. That
+double-quoted value was being inserted into an onclick attribute that
+was ALSO wrapped in double quotes, so the browser's HTML parser cut
+the attribute off after the very first character, producing broken
+markup and a completely dead button. This bug was already present in
+the original code before I touched it - I copied the button structure
+as-is when converting it to icon-only last round and didn't click-test
+it afterward, so I didn't catch it then. Confirmed and fixed now.
+
+Fixed by switching those specific onclick attributes to single quotes,
+so the double-quoted batch ID no longer collides with the surrounding
+attribute. Verified three ways: inspected the actual rendered HTML to
+confirm it's well-formed, clicked both buttons to confirm their modals
+open, and filled in a change and saved it to confirm the full edit
+round-trip (API call + success confirmation) works end to end.
+
 Everything reviewed, fixed, tested by actually rendering pages (not
 just reading code), and packaged. Code.js is intentionally NOT
 included - it was a byte-identical duplicate of Code.gs, pure dead
