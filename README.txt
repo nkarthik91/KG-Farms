@@ -1,77 +1,64 @@
-KG Farms + Sales - Why you don't see "Transfer Feed"
+KG Farms + Sales - Feed Order Approval Workflow
 
-I rendered the Feed page from the actual current code and the button
-is there - top right of the Feed page, next to "Order Cart", plus a
-"Feed Transfer History" section at the bottom of that same page. So
-the code is not the problem. Two most likely real explanations, in
-order of likelihood:
+Yes, this could be done - here's what changed.
 
 ====================================================================
-MOST LIKELY: YOUR SITE IS RUNNING AN OLDER SERVICE WORKER
+WHAT CHANGED
 ====================================================================
 
-A few rounds back, I fixed this app's service worker so it always
-fetches the newest files instead of serving old cached ones. But that
-fix only takes effect once your BROWSER has actually picked up the new
-sw.js file and it's taken over. If your live site was already running
-before that fix went out, and your phone/browser never happened to
-pick up the newer sw.js in between, you could still be stuck on the
-OLD, pre-fix service worker right now - which WOULD explain seeing an
-old version of the app no matter how many times you reload.
+Before this, feed ordering had an inconsistency I found while digging
+into it: BPSC and BSC orders were hard-blocked from ever exceeding the
+calculated requirement (no way around it, no matter the reason), while
+BFP orders had no restriction at all - anyone could order any amount
+of BFP with zero oversight. Neither of those was quite right.
 
-I bumped the service worker's internal version number again this round
-specifically to force this - but the file still needs to physically
-reach your browser once for it to matter.
+Now, for all three feed types:
+- Ordering exactly the calculated requirement works exactly as before
+  - no extra steps, no friction.
+- Ordering something different - less or more - is now allowed, but
+  the order goes into a "Pending Approval" state and needs an admin to
+  approve it before it can actually be fulfilled (before anyone can
+  log a delivery against it).
+- The person placing the order sees this upfront: the order popup now
+  shows the calculated requirement and says plainly that anything
+  different will need approval, and if they enter a different number,
+  a confirmation prompt spells that out one more time before it's
+  submitted.
 
-FASTEST WAY TO KNOW FOR SURE (2 minutes, and this is the one I'd
-actually do first):
-1. Open your KG Farms URL in an incognito / private browsing window
-   (this skips your service worker and all caching entirely).
-2. Log in and go to the Feed page.
-3. If "Transfer Feed" shows up there - it's 100% a caching issue on
-   your regular browser, not a missing feature. Go to step 4.
-4. Close incognito. On your regular browser: remove any home-screen
-   icon for KG Farms if you added one, then go into your browser's
-   site settings and clear stored data specifically for your KG Farms
-   site (or just clear the last 24 hours of browsing data). Reopen the
-   site fresh.
-
-If "Transfer Feed" does NOT show up even in incognito, that points to
-deployment instead - see below.
+On the Orders page, orders waiting on approval show a distinct
+"PENDING APPROVAL" badge with Approve / Reject buttons (admin only).
+Rejecting asks for an optional reason, which gets saved onto the order
+for the record.
 
 ====================================================================
-SECOND POSSIBILITY: THE LATEST APP.JS ISN'T ACTUALLY DEPLOYED
+WHAT I SPECIFICALLY CHECKED, NOT JUST BUILT
 ====================================================================
 
-If several files have gone out across the last few rounds, it's easy
-for one to get missed. Quick way to check without guessing: open this
-directly in your browser (replace with your actual site URL):
+- An order can't be fulfilled while still waiting on approval - tried
+  to make sure this is airtight, including the "auto-match" path where
+  feed gets logged against a batch without picking a specific order
+  number (that path now skips unapproved orders entirely rather than
+  accidentally grabbing one).
+- Cancelling the "this needs approval" warning actually cancels it -
+  doesn't sneak the order through anyway.
+- The reject reason prompt correctly tells apart "left it blank" from
+  "hit Cancel on the whole thing" - these are different in JavaScript
+  (null vs empty string) and it's an easy bug to introduce by
+  accident. Caught this while building it and fixed it before it went
+  out, not after.
+- Approve and Reject both send the exact order number and (for reject)
+  the exact reason typed in - checked the actual network request, not
+  just that a toast appeared.
 
-  https://yoursite/app.js
-
-Then search the page (Ctrl+F / Cmd+F) for the text "Transfer Feed". If
-it's not there, the file sitting on your server is still an older one
-- re-upload the app.js from this package and that resolves it
-immediately, no further troubleshooting needed.
-
-====================================================================
-WHAT'S IN THIS PACKAGE
-====================================================================
-
-Same app.js as last round (Feed Transfer + the Feed Return fix, both
-still confirmed present and working) plus sw.js with its version
-bumped again, to maximize the chance your browser treats it as new and
-updates promptly. Full file set included as always so there's no
-ambiguity about what's current.
+Order creation permissions are unchanged - still admin-only, same as
+before. This wasn't about changing who can place orders, just about
+what happens when a placed order doesn't match the calculated number.
 
 ====================================================================
 DEPLOY
 ====================================================================
 
-Replace all files as usual. Code.gs is unchanged - no Apps Script
-redeploy needed this round.
-
-After uploading, please try the incognito-window check above BEFORE
-anything else - it'll tell us in under a minute whether this is a
-caching issue (very likely, and requires no further code changes) or
-something else, and save us both a round of guessing.
+app.js, Code.gs, and styles.css all changed this round. Update Code.gs
+in Apps Script and redeploy: Deploy > Manage deployments > Edit > New
+version > Deploy - this round added new backend actions, so saving
+alone won't push it live. Then replace the rest of the files as usual.
