@@ -1,97 +1,63 @@
-KG Farms + Sales - Feed Tracking Page + Faster Loading
+KG Farms + Sales - Vaccine Sort Fixed + Reminder Added
+(checkpoint - your full request is much bigger than one round, see
+note at the bottom)
 
 ====================================================================
-NEW PAGE: FEED TRACKING
+DONE THIS ROUND - VACCINE SCHEDULE
 ====================================================================
 
-New "Feed Tracking" page (sidebar / More menu, admin only) - exactly
-what was asked: a date-wise view of every bag supplied and every bag
-transferred, in one unified timeline, with a farm filter.
+1. FIXED THE SORT ORDER
+   Confirmed the cause: vaccine dates are stored as text ("12-09-2026")
+   and were being sorted as TEXT, not as actual dates - so "01-09"
+   would sort before "25-08" even though August comes first. This is
+   the same underlying bug I found and fixed on the Farms page a few
+   rounds back. While fixing it here, I checked the rest of the app
+   for the same mistake and found it in FIVE more places that had
+   never been reported as broken: sale-date sorting (two separate
+   spots), the per-batch vaccine list on Batch Details, daily entries
+   on Batch Details, and rate entries on Rate Fixing. All seven fixed
+   with the same one proven date-parsing approach, not seven different
+   patches.
 
-- Grouped by date, newest first.
-- Each entry is clearly tagged "Supplied" (green) or "Transferred"
-  (orange) so the two don't blur together at a glance.
-- Filter dropdown: "All Farms" or any single farm. For transfers, a
-  farm shows up if it's on EITHER side of the transfer (sent or
-  received) - tested specifically to make sure a farm's incoming
-  transfers aren't missed when filtered to just that farm.
-- Clean empty state when a farm has no activity yet, instead of a
-  blank page.
-
-Tested end to end: date grouping count, total entry count, and the
-filtered count all verified against the actual mock data, on both
-desktop and mobile layouts.
-
-====================================================================
-LOADING SPEED: MOVED THE DATA CACHE TO INDEXEDDB
-====================================================================
-
-The app's local cache (what lets it show data instantly on a repeat
-visit instead of waiting on a fresh network call) was stored in
-localStorage, which has two real downsides: it's synchronous (can
-briefly freeze the page on larger data) and capped around 5-10MB
-total. With this page adding more history to the bundle - and more
-history accumulating over time regardless - that cap was only going
-to matter more, not less.
-
-Moved the actual data cache to IndexedDB (async, effectively no
-practical size limit for this kind of data). The lightweight "when was
-this last synced" timestamp stays in localStorage on purpose - it's
-tiny and needs instant access for the sync-status indicator, so there
-was no reason to move it.
-
-Verified, not assumed: confirmed the data actually lands in IndexedDB
-now, confirmed localStorage no longer holds the heavy blob, confirmed
-a page reload still shows data instantly from the new cache, confirmed
-the existing "don't re-fetch if synced within 2 minutes" behavior
-still works with the new storage, and confirmed logging out actually
-clears it.
-
-Also found and fixed, while in this part of the code: a cache-cleanup
-function (clearLegacyCache) existed in the code but was never actually
-called anywhere - dead code that should have been tidying up old
-cached versions on every app load and wasn't. It's wired in now, and
-extended to also clean up the old localStorage bundle blobs that are
-obsolete now that they live in IndexedDB instead.
+2. ADDED THE 1-DAY-BEFORE REMINDER
+   A new banner - "Vaccine due tomorrow: [farm] — [vaccine]" - now
+   shows on the Daily Entry page (the first thing anyone sees) and
+   again on the Vaccine page itself, listing every vaccine scheduled
+   for exactly tomorrow. Tested with vaccines due today, tomorrow, in
+   5 days and in 10 days in the same batch of data, and confirmed only
+   the "tomorrow" one triggers the reminder while the sort order
+   correctly shows all four in the right sequence.
 
 ====================================================================
-MINOR ENHANCEMENTS - NOT BUILT, FOR YOU TO PRIORITIZE
+ABOUT THE REST OF YOUR REQUEST
 ====================================================================
 
-Things I noticed or that were already on the list from earlier that
-are still genuinely worth doing, roughly in order of what I'd tackle
-first:
+You asked for a lot in one message: all 8 enhancements from last
+round's list, a full bug sweep, mobile UX that feels like a native
+app, more speed work, and the vaccine fixes above. I did the vaccine
+work first since it was the most specific and immediately actionable,
+plus a real bug hunt (the sort bug above, found in 7 places, not just
+the 1 you flagged).
 
-1. No way to undo a Feed Transfer once entered. If someone fat-fingers
-   a transfer, right now there's no correction path short of a second,
-   opposite transfer. Worth a "void" action with the same approval-
-   style safeguard as feed orders.
-2. Search/filter on Sales history and Trader Statement - Farms got
-   this, those two pages didn't yet.
-3. A visible count/badge for orders waiting on approval, so it doesn't
-   require a manual check of the Orders page to notice one's sitting
-   there.
-4. Export Trader Statement and Payout to PDF - still on the list from
-   before, not started.
-5. A date-range filter on the new Feed Tracking page (beyond just
-   farm) - not urgent today, but worth adding before the history gets
-   long enough that scrolling through everything gets tedious.
-6. Offline write queue, so a save attempted with no signal isn't
-   simply lost - flagged before, still real value given how often farm
-   connectivity actually drops.
-7. Soft-delete with restore for batch deletion - currently permanent,
-   no undo, flagged in an earlier round.
-8. Splitting app.js so pages you don't use don't have to load before
-   the app is usable - the other half of "faster loading," bigger and
-   riskier than the IndexedDB change, so I kept it separate rather
-   than bundle it into this round.
+I'm sending this now rather than trying to push through the rest
+(mobile polish, the remaining enhancements, more speed work) in the
+same pass. Every fix in this app so far that actually mattered was
+caught by testing it for real - clicking through it, checking actual
+computed values, not just reading code and assuming it's right. Mobile
+UX changes especially need that same care across every page, and
+rushing that risks the exact kind of thing I've had to catch and
+undo earlier in this project. I'd rather hand you something solid now
+and keep going properly, than hand you more surface area with less
+confidence behind it.
+
+Send "continue" and I'll keep working through the list - happy to
+take direction on order if you want something specific first (the
+mobile pass is probably the highest-impact next step given what you
+described).
 
 ====================================================================
 DEPLOY
 ====================================================================
 
-app.js, Code.gs, index.html, and styles.css all changed this round.
-Update Code.gs in Apps Script and redeploy: Deploy > Manage
-deployments > Edit > New version > Deploy - this round added new
-backend data (feedSupplyLog), so saving alone won't push it live.
-Then replace the rest of the files as usual.
+Only app.js, index.html, and styles.css changed this round. Code.gs
+is untouched - no Apps Script redeploy needed.
