@@ -260,7 +260,9 @@ button:disabled{cursor:not-allowed}
 @media(min-width:761px){.syncStatus{padding:8px 24px}}
 .farmSearchWrap{margin-bottom:14px}
 .farmSearchWrap input{width:100%;padding:10px 14px;border:1px solid var(--line);border-radius:11px;font-size:14px}
-.transferRow{padding:10px 4px;border-bottom:1px solid var(--line);font-size:13px}
+.transferRow{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;padding:10px 4px;border-bottom:1px solid var(--line);font-size:13px}
+.transferVoided{opacity:.6}
+.transferRowText{flex:1;min-width:0}
 .transferRow:last-child{border-bottom:0}
 .transferRowMain{font-weight:600}
 .transferArrow{margin:0 8px;color:var(--g);font-weight:800}
@@ -288,6 +290,7 @@ button:disabled{cursor:not-allowed}
 .statusBadgeBlock{display:block!important;width:fit-content;margin-top:4px}
 .statusBadge.statusActive{background:#e3f4e6;color:var(--g)}
 .statusBadge.statusClosed{background:#f2f2f2;color:var(--muted)}
+.navBadge{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;padding:0 5px;margin-left:6px;background:#b0490f;color:#fff;font-size:10px;font-weight:800;border-radius:20px;vertical-align:middle}
 @media(max-width:760px){.farmToolbar{flex-direction:column;align-items:stretch}}
 @media(max-width:760px){
   .roleBadge{font-size:9px;padding:3px 7px}
