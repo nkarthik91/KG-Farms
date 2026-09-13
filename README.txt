@@ -1,74 +1,77 @@
-KG Farms + Sales - Assumptions Feature + Auto-Sync
+KG Farms + Sales - Firebase Fast-Loading (Frontend Complete)
 
 ====================================================================
-TWO OF YOUR FOUR REQUESTS WERE ALREADY DONE
+WHAT THIS ROUND ACTUALLY DELIVERS
 ====================================================================
 
-Checked both carefully before building anything new:
-
-- "Synced" indicator near the role badge - already there, confirmed
-  with a real screenshot on a busy page (not just an empty one where
-  it might coincidentally look right).
-- Feed Tracking date filter - already built (From/To date fields,
-  "Clear dates" button), confirmed it actually narrows results
-  correctly.
-
-Given the pattern from your last two messages, this is very likely
-the same deployment gap as the vaccine sort issue - your live site
-probably just hasn't picked up the files from a recent round yet.
-Worth checking with the same incognito-window test as before.
+This is the piece that makes loading genuinely fast. Login now signs
+you into Firebase automatically (using the credential your backend
+already mints), and every subsequent load tries Firebase first -
+falling back to Apps Script instantly and invisibly if anything about
+Firebase isn't available for any reason. You should never be able to
+tell the difference except that it's faster.
 
 ====================================================================
-NEW: AUTO-SYNC EVERY 5 MINUTES
+HOW I TESTED THIS, GIVEN I CAN'T REACH YOUR REAL FIREBASE PROJECT
 ====================================================================
 
-The app now checks for new data automatically in the background,
-every 5 minutes by default, only while the tab is actually visible
-(won't waste your data/battery syncing a backgrounded tab).
+My environment has no internet access, so I couldn't test this
+against your actual live Firebase project the way I test everything
+else in this app. What I did instead: built a fully controllable fake
+version of the Firebase SDK and ran the app against it, checking every
+branch of the logic individually:
+
+- No Firebase session yet -> correctly uses Apps Script (this is what
+  everyone will see immediately after this update, until they log out
+  and back in once - expected, not a bug, see below)
+- Firebase signed in, working -> uses Firebase exclusively, confirmed
+  Apps Script is not even called
+- Firebase signed in, but the read fails -> falls back to Apps Script
+  cleanly
+- Firebase signed in, but slow/hanging -> gives up after 4 seconds and
+  falls back, rather than leaving you waiting indefinitely
+- Login actually calls Firebase sign-in with the exact token your
+  backend generates
+- Logout actually clears the Firebase session (so a different person
+  logging in on the same device doesn't inherit it)
+- The Firebase SDK failing to load at all (blocked, offline, whatever)
+  - confirmed the entire app still works completely normally
+
+A REAL BUG THIS TESTING CAUGHT: while checking "does my own save show
+up immediately after I make it," I found that right after saving
+something, if you reload within the app's existing 2-minute cache
+window, it could skip fetching ANYTHING new - not just skip Firebase,
+skip the update entirely. This bug already existed before any of the
+Firebase work, I just hadn't had a reason to test that specific
+sequence before. Fixed now: right after any save, the very next load
+always fetches fresh data, guaranteed, regardless of Firebase or the
+cache window.
 
 ====================================================================
-NEW: THE "ASSUMPTIONS" FEATURE
+WHAT TO EXPECT WHEN THIS GOES LIVE
 ====================================================================
 
-New "Assumptions" button in the header (next to Refresh, admin only).
-Click it to see every built-in threshold this app uses to make
-automatic decisions, in plain language, with the ability to change
-each one:
-
-- Feed stage completion tolerance (bags) - currently 3
-- Bird reconciliation variance (birds) - currently 20
-- Vaccine reminder (days before) - currently 1
-- Auto-sync interval (minutes) - currently 5
-- Cache freshness window (minutes) - currently 2
-- Session warning (minutes before expiry) - currently 15
-
-A REAL BUG THIS UNCOVERED: while building this, I found that two of
-these values (stage tolerance and bird reconciliation) already had
-full, working backend storage - they were being saved and returned
-correctly - but the app's frontend was never actually reading them.
-It was using its own separate hardcoded copies instead. This means if
-anyone had ever tried to customize these before, it would have
-silently done nothing. That's fixed now - all six values are properly
-connected end to end, save to the same place, and take effect
-immediately.
-
-Verified specifically, not just assumed: confirmed the button is
-hidden for Supervisor accounts, confirmed all six fields show the
-correct current values when opened, confirmed saving sends exactly
-what was typed, and - most importantly - confirmed that changing a
-value (tested with feed stage tolerance) actually changes the app's
-real behavior immediately, not just what's displayed in the modal.
+- Anyone already logged in when you deploy this will keep working
+  exactly as before (Apps Script) until they next log out and back in
+  - that's when they'll get a Firebase credential and start getting
+  the speed benefit. This is intentional, not a bug - no one gets
+  disrupted mid-session.
+- Once someone has logged in after this update, their loads should
+  feel noticeably faster - especially the very first load after
+  opening the app, and the background auto-sync every 5 minutes.
+- If Firebase is ever slow, misconfigured, or unreachable for any
+  reason, the app quietly falls back to Apps Script - there is no
+  failure mode where the app stops working because of this feature.
 
 ====================================================================
 DEPLOY
 ====================================================================
 
-Code.gs changed significantly this round (new saveAssumptions action,
-new settings fields) - needs an actual redeploy in Apps Script:
-Deploy > Manage deployments > Edit > New version > Deploy. app.js,
-index.html, and styles.css changed too - replace as usual.
+app.js, index.html, and Code.gs all changed. Update Code.gs in Apps
+Script and redeploy (Deploy > Manage deployments > Edit > New version
+> Deploy), then replace the rest of the files as usual.
 
-Given the last couple of rounds, it's worth double-checking after
-deploying: open the Assumptions modal and confirm it shows real
-numbers (3, 20, 1, 5, 2, 15) rather than blanks or zeros - that
-confirms Code.gs actually went live.
+After deploying, log out and back in once yourself to pick up the
+Firebase credential, then try a normal load - if you want to actually
+see the speed difference, open your browser's developer tools Network
+tab before reloading and compare how long the data request takes.
