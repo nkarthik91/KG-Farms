@@ -1,77 +1,86 @@
-KG Farms + Sales - Firebase Fast-Loading (Frontend Complete)
+KG Farms + Sales - Rate-Limiting, Password Rules, Preconnect Hints
+(3 of 4 done and tested - honest status on the 4th below, please read it)
 
 ====================================================================
-WHAT THIS ROUND ACTUALLY DELIVERS
+1. LOGIN RATE-LIMITING - DONE, VERIFIED
 ====================================================================
 
-This is the piece that makes loading genuinely fast. Login now signs
-you into Firebase automatically (using the credential your backend
-already mints), and every subsequent load tries Firebase first -
-falling back to Apps Script instantly and invisibly if anything about
-Firebase isn't available for any reason. You should never be able to
-tell the difference except that it's faster.
+5 wrong password attempts on the same username now locks that account
+out for 15 minutes, regardless of whether the 6th attempt happens to
+be correct. A successful login clears the counter, so normal typos
+don't accumulate toward a lockout. Different usernames don't affect
+each other.
+
+How I verified this without being able to run real Apps Script code
+directly: I extracted the exact state-machine logic and ran it against
+a small simulation that mimics Google's CacheService behavior
+precisely (get/put/remove with real time-based expiry), then tested
+four scenarios explicitly - normal use with some typos, an actual
+lockout, confirming a successful login resets the counter, and
+confirming two different users don't interfere with each other. All
+four passed.
 
 ====================================================================
-HOW I TESTED THIS, GIVEN I CAN'T REACH YOUR REAL FIREBASE PROJECT
+2. MINIMUM PASSWORD LENGTH - DONE, VERIFIED
 ====================================================================
 
-My environment has no internet access, so I couldn't test this
-against your actual live Firebase project the way I test everything
-else in this app. What I did instead: built a fully controllable fake
-version of the Firebase SDK and ran the app against it, checking every
-branch of the logic individually:
-
-- No Firebase session yet -> correctly uses Apps Script (this is what
-  everyone will see immediately after this update, until they log out
-  and back in once - expected, not a bug, see below)
-- Firebase signed in, working -> uses Firebase exclusively, confirmed
-  Apps Script is not even called
-- Firebase signed in, but the read fails -> falls back to Apps Script
-  cleanly
-- Firebase signed in, but slow/hanging -> gives up after 4 seconds and
-  falls back, rather than leaving you waiting indefinitely
-- Login actually calls Firebase sign-in with the exact token your
-  backend generates
-- Logout actually clears the Firebase session (so a different person
-  logging in on the same device doesn't inherit it)
-- The Firebase SDK failing to load at all (blocked, offline, whatever)
-  - confirmed the entire app still works completely normally
-
-A REAL BUG THIS TESTING CAUGHT: while checking "does my own save show
-up immediately after I make it," I found that right after saving
-something, if you reload within the app's existing 2-minute cache
-window, it could skip fetching ANYTHING new - not just skip Firebase,
-skip the update entirely. This bug already existed before any of the
-Firebase work, I just hadn't had a reason to test that specific
-sequence before. Fixed now: right after any save, the very next load
-always fetches fresh data, guaranteed, regardless of Firebase or the
-cache window.
+New users (and password changes) now require at least 6 characters,
+enforced on both ends - instant feedback in the Add/Change User form,
+and the real enforcement on the server so it can't be bypassed.
+Tested live: a 3-character password is correctly rejected before it
+ever reaches the server; a valid one goes through normally.
 
 ====================================================================
-WHAT TO EXPECT WHEN THIS GOES LIVE
+3. PRECONNECT HINTS - DONE
 ====================================================================
 
-- Anyone already logged in when you deploy this will keep working
-  exactly as before (Apps Script) until they next log out and back in
-  - that's when they'll get a Firebase credential and start getting
-  the speed benefit. This is intentional, not a bug - no one gets
-  disrupted mid-session.
-- Once someone has logged in after this update, their loads should
-  feel noticeably faster - especially the very first load after
-  opening the app, and the background auto-sync every 5 minutes.
-- If Firebase is ever slow, misconfigured, or unreachable for any
-  reason, the app quietly falls back to Apps Script - there is no
-  failure mode where the app stops working because of this feature.
+Added hints so the browser starts connecting to Apps Script and
+Firebase before it actually needs to, shaving a bit of time off every
+request rather than just the first one. Zero risk, this is a purely
+additive browser hint with no behavior to break.
+
+====================================================================
+4. SPLITTING APP.JS BY PAGE - NOT DONE, AND HERE'S EXACTLY WHY
+====================================================================
+
+I want to be straightforward here rather than either rush this or
+just quietly drop it.
+
+I spent real effort trying to do this properly - building an actual
+dependency map of which of the app's ~175 functions are only used by
+which pages, so I could confidently move the unused-most-of-the-time
+ones (Sales, Payout, Farms, Settings, etc.) into separate files that
+only load when someone actually visits those pages.
+
+What I found: the app's page-navigation function currently references
+every single page's functions directly and by name in one shared
+place. That's not a problem for how the app runs today, but it means
+a real split isn't just "move some code to another file" - it
+requires also rewriting how navigation decides what to load, so it
+can fetch a page's code on demand instead of assuming everything is
+already there. That's a meaningfully bigger and riskier change than
+the other three items here, and my usual way of gaining confidence in
+something like this - careful automated analysis of the code, cross-
+checked against real behavior - kept surfacing edge cases (a stray
+line of setup code between two functions was enough to make an
+automated check think two unrelated pages depended on each other,
+which they don't).
+
+Given how much of this app now handles real money - sales, payouts,
+approvals - I didn't think it was right to push that through in the
+same pass as three clean, verified wins, on the theory that a
+half-confident navigation change could silently break a page for
+someone in a way that's hard to notice from the outside.
+
+I'd like to come back to this properly rather than abandon it - happy
+to talk through it more, or take a run at it with more room to test
+thoroughly rather than exploring and building at the same time.
 
 ====================================================================
 DEPLOY
 ====================================================================
 
-app.js, index.html, and Code.gs all changed. Update Code.gs in Apps
-Script and redeploy (Deploy > Manage deployments > Edit > New version
-> Deploy), then replace the rest of the files as usual.
-
-After deploying, log out and back in once yourself to pick up the
-Firebase credential, then try a normal load - if you want to actually
-see the speed difference, open your browser's developer tools Network
-tab before reloading and compare how long the data request takes.
+Code.gs changed (rate-limiting, password length) - needs an actual
+redeploy: Deploy > Manage deployments > Edit > New version > Deploy.
+app.js and index.html changed too (password validation, preconnect
+hints) - replace as usual.
