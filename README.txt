@@ -1,75 +1,74 @@
-KG Farms + Sales - Enhancements 1-4 (checkpoint 2 of the full list)
+KG Farms + Sales - Assumptions Feature + Auto-Sync
 
 ====================================================================
-DONE AND VERIFIED THIS ROUND
+TWO OF YOUR FOUR REQUESTS WERE ALREADY DONE
 ====================================================================
 
-1. VOID A FEED TRANSFER
-   New schema columns (Status, Voided At, Void Reason) added the safe
-   way - appended at the end, not inserted into existing columns, so
-   any transfers already in your sheet are unaffected. A "void" icon
-   button now appears on every active transfer (Feed page and the new
-   Feed Tracking page), asks for an optional reason, and correctly
-   reverses the transfer's effect on supplied/available stock the
-   moment it's voided. Already-voided transfers show grayed out with
-   a "Voided" tag and their reason, rather than disappearing - so the
-   record stays, only its effect is undone.
+Checked both carefully before building anything new:
 
-2. SEARCH ON SALES HISTORY
-   Found a real bug while building this: the "Completed Sales" list
-   was silently capped at 8 entries and showing only ONE sale per
-   batch (deduplicated), which would have made a new search box
-   almost useless - you'd be searching a tiny, incomplete slice of
-   your actual history. Fixed that first, then added the search box.
-   Also added a safeguard: "Edit" now only appears for sales tied to
-   a batch that's still active - confirmed that trying to edit a sale
-   for a closed or deleted batch would otherwise crash the page.
+- "Synced" indicator near the role badge - already there, confirmed
+  with a real screenshot on a busy page (not just an empty one where
+  it might coincidentally look right).
+- Feed Tracking date filter - already built (From/To date fields,
+  "Clear dates" button), confirmed it actually narrows results
+  correctly.
 
-3. TRADER STATEMENT - LOOKED CLOSELY, DECIDED NOT TO ADD MORE
-   This already has a trader picker and a proper from/to date range,
-   and I tested both - confirmed the date range actually reaches the
-   backend and filters correctly. Given it's a different shape of
-   page than Sales history (you pick one trader on purpose, rather
-   than scanning a list), I don't think bolting on another search box
-   adds real value here. Happy to revisit if you disagree.
-
-4. PDF EXPORT - ALREADY DONE (I had this wrong before)
-   Two rounds ago I listed "export Trader Statement and Payout to
-   PDF" as not started. That was a mistake on my part - both already
-   exist, and both work. I tested both live: the Trader Statement PDF
-   correctly shows company letterhead, the transaction table, and
-   accurate totals (caught and fixed a false alarm in my own testing
-   here - my test data was incomplete, not the app); the Payout PDF
-   button is present and wired up. Wanted to correct the record rather
-   than let the wrong status stand.
-
-BONUS: PENDING-APPROVAL BADGE
-   Small addition while working through this list - "Orders" in the
-   nav now shows a small orange count badge whenever there are orders
-   waiting on approval, visible from any page, on both desktop and
-   mobile. Verified showing the right count and updating correctly.
+Given the pattern from your last two messages, this is very likely
+the same deployment gap as the vaccine sort issue - your live site
+probably just hasn't picked up the files from a recent round yet.
+Worth checking with the same incognito-window test as before.
 
 ====================================================================
-STILL AHEAD
+NEW: AUTO-SYNC EVERY 5 MINUTES
 ====================================================================
 
-- Date-range filter on the Feed Tracking page
-- Offline write queue
-- Soft-delete with restore for batch deletion
-- Splitting app.js by page (the bigger half of "faster loading")
-- The mobile "feel like a real app" pass
-- More bug-hunting
+The app now checks for new data automatically in the background,
+every 5 minutes by default, only while the tab is actually visible
+(won't waste your data/battery syncing a backgrounded tab).
 
-Continuing at the same pace - want the next checkpoint after the
-offline queue and soft-delete (the two with real downside if rushed),
-or should I do the mobile pass next given what you originally asked
-for?
+====================================================================
+NEW: THE "ASSUMPTIONS" FEATURE
+====================================================================
+
+New "Assumptions" button in the header (next to Refresh, admin only).
+Click it to see every built-in threshold this app uses to make
+automatic decisions, in plain language, with the ability to change
+each one:
+
+- Feed stage completion tolerance (bags) - currently 3
+- Bird reconciliation variance (birds) - currently 20
+- Vaccine reminder (days before) - currently 1
+- Auto-sync interval (minutes) - currently 5
+- Cache freshness window (minutes) - currently 2
+- Session warning (minutes before expiry) - currently 15
+
+A REAL BUG THIS UNCOVERED: while building this, I found that two of
+these values (stage tolerance and bird reconciliation) already had
+full, working backend storage - they were being saved and returned
+correctly - but the app's frontend was never actually reading them.
+It was using its own separate hardcoded copies instead. This means if
+anyone had ever tried to customize these before, it would have
+silently done nothing. That's fixed now - all six values are properly
+connected end to end, save to the same place, and take effect
+immediately.
+
+Verified specifically, not just assumed: confirmed the button is
+hidden for Supervisor accounts, confirmed all six fields show the
+correct current values when opened, confirmed saving sends exactly
+what was typed, and - most importantly - confirmed that changing a
+value (tested with feed stage tolerance) actually changes the app's
+real behavior immediately, not just what's displayed in the modal.
 
 ====================================================================
 DEPLOY
 ====================================================================
 
-Code.gs changed this round (new voidFeedTransfer action, new Feed
-Transfers columns) - needs an actual redeploy in Apps Script: Deploy >
-Manage deployments > Edit > New version > Deploy. app.js, index.html,
-and styles.css changed too - replace as usual.
+Code.gs changed significantly this round (new saveAssumptions action,
+new settings fields) - needs an actual redeploy in Apps Script:
+Deploy > Manage deployments > Edit > New version > Deploy. app.js,
+index.html, and styles.css changed too - replace as usual.
+
+Given the last couple of rounds, it's worth double-checking after
+deploying: open the Assumptions modal and confirm it shows real
+numbers (3, 20, 1, 5, 2, 15) rather than blanks or zeros - that
+confirms Code.gs actually went live.

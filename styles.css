@@ -252,12 +252,12 @@ button:disabled{cursor:not-allowed}
 .iconBtn.danger:hover{background:#fdeceb}
 .iconBtn.primary{background:var(--g);border-color:var(--g);color:#fff}
 .topBtns button .btnIcon{display:none}
-.syncStatus{display:none;align-items:center;gap:6px;font-size:11px;font-weight:700;padding:6px 15px;color:var(--muted);background:#f7faf7;border-bottom:1px solid var(--line)}
-.syncStatus.show{display:flex}
+.syncStatus{display:none;align-items:center;gap:5px;font-size:10px;font-weight:700;padding:4px 9px;color:var(--muted);background:var(--gl);border-radius:20px;white-space:nowrap}
+.syncStatus .dot{width:6px;height:6px;border-radius:50%;background:#3a9b4f;flex-shrink:0}
+.syncStatus.show{display:inline-flex}
 .syncStatus.offline{background:#fdeceb;color:#b42318}
-.syncStatus .dot{width:7px;height:7px;border-radius:50%;background:#3a9b4f;flex-shrink:0}
 .syncStatus.offline .dot{background:#b42318}
-@media(min-width:761px){.syncStatus{padding:8px 24px}}
+@media(max-width:760px){.syncStatus{font-size:0;padding:0;width:8px;height:8px;border-radius:50%;background:transparent}.syncStatus .dot{width:8px;height:8px}.syncStatus.offline{background:transparent}}
 .farmSearchWrap{margin-bottom:14px}
 .farmSearchWrap input{width:100%;padding:10px 14px;border:1px solid var(--line);border-radius:11px;font-size:14px}
 .transferRow{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;padding:10px 4px;border-bottom:1px solid var(--line);font-size:13px}
@@ -267,7 +267,11 @@ button:disabled{cursor:not-allowed}
 .transferRowMain{font-weight:600}
 .transferArrow{margin:0 8px;color:var(--g);font-weight:800}
 .transferRowMeta{font-size:11px;margin-top:3px}
-.trackingToolbar{margin-bottom:16px}
+.trackingToolbar{margin-bottom:16px;display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end}
+.trackingToolbar select{padding:10px 14px;border:1px solid var(--line);border-radius:11px;font-size:14px;font-weight:700}
+.trackingDateLabel{display:flex;flex-direction:column;gap:3px;font-size:11px;font-weight:700;color:var(--muted)}
+.trackingDateLabel input{padding:9px 10px;border:1px solid var(--line);border-radius:11px;font-size:13px;font-weight:700;color:var(--text)}
+@media(max-width:760px){.trackingToolbar{flex-direction:column;align-items:stretch}.trackingToolbar select{width:100%}}
 .trackingToolbar select{width:100%;max-width:320px;padding:10px 14px;border:1px solid var(--line);border-radius:11px;font-size:14px;font-weight:700}
 .trackDateGroup{margin-bottom:18px}
 .trackDateGroup:last-child{margin-bottom:0}
