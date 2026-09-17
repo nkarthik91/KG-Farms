@@ -1,100 +1,74 @@
-KG FARMS - v56
+KG FARMS - v57
 ==============
 
-FIXED
------
+ALL 7 ITEMS FIXED. Each one was traced to an actual cause and
+verified in a real browser, not just changed and hoped for.
 
-1. ORDERS PAGE (was completely broken)
-   Three functions were missing from v55 entirely: cancelOrder,
-   approveFeedOrderConfirm, rejectFeedOrderConfirm. The rows were
-   rendering fine, but every Cancel / Approve / Reject button threw
-   an error on click. Restored. The backend actions for all three
-   already existed, so only the frontend was missing.
+1. FEED ORDER IMAGE CRASH ("colWidthFromTexts is not defined")
+   Cause found: the Feed Order image generator was calling a helper
+   that only exists inside the Vaccination image generator. It was a
+   private helper to each one, and the Feed Order copy had gone
+   missing. Restored it. Image now generates correctly.
 
-2. 5-MINUTE SYNC (two separate causes)
-   - There were TWO timers: the correct one that honours your
-     Assumptions setting, plus a leftover hardcoded 5-minute timer
-     calling load() unconditionally. Removed the leftover.
-   - The remaining timer was being silently blocked by the cache
-     guard (skips fetching if data is under 2 min old). Auto-sync
-     now forces a live fetch.
-   Both needed fixing - either alone would not have worked.
+2. SALE ENTRY - EDIT BUTTON INVISIBLE
+   Cause found: the button was always there and clickable - it was
+   rendering WHITE TEXT ON A WHITE BACKGROUND. Inherited styling was
+   forcing the text colour to white. It now reads "Edit" in green.
+   (Confirmed by reading the actual computed colour in the browser:
+   it was rgb(255,255,255) on rgb(255,255,255).)
 
-3. ORDER APPROVAL RULE
-   Now triggers only when the order EXCEEDS (required - supplied).
-   Ordering less is allowed with no warning.
-   The hard block on BPSC/BSC is removed - all three feed types can
-   now be ordered above requirement with approval, same as BFP.
+3. SALE ENTRY - COLUMN ALIGNMENT
+   Cause found: five different conflicting CSS rules for the same
+   row, two of which defined only 5 columns while the row actually
+   renders 6 cells. Removed the two stale rules. Header and data
+   columns now match exactly - verified 6 vs 6 on both desktop and
+   mobile.
 
-4. STAGE AUTO-SUPPLY (new)
-   When a later feed type is ordered, any earlier feed type short by
-   no more than the tolerance is automatically marked SUPPLIED and
-   stops showing as pending.
-   Tolerance default changed 3 -> 5 bags, editable in Assumptions.
-   Tested against 5 cases: within tolerance closes, beyond tolerance
-   does not, ordering BFP closes both BPSC and BSC, ordering the
-   first stage does nothing, and cancelled orders are never revived.
+4. REMAINING BIRDS
+   Added a "REMAINING BIRDS" tile right after SALE AVG. Counts down
+   live as entries are added (live birds minus birds sold so far).
 
-5. VEHICLE NUMBER (root cause was the data structure)
-   The Sale Entries sheet had NO vehicle column - vehicle was stored
-   once per SALE, which is why editing it changed every entry. There
-   was no way to fix this in the UI alone.
-   Added a "Vehicle No" column to Sale Entries and wired it through
-   all three write points and both read points. Each entry now keeps
-   its own vehicle. Verified with two entries on different vehicles.
+5. TRADER STATEMENT PDF
+   - Farm column removed.
+   - All table data centre-aligned (Remarks stays left, as it wraps).
+   - Compacted for A4: tighter padding, smaller font, 8mm margins.
 
-6. SALES ENTRY SIMPLIFIED
-   - Supervisor removed completely.
-   - Vehicle is now a plain optional text box, typed when needed.
-     It carries over to the next entry but stays editable.
-   - Fields reordered: Trader -> Kg -> Birds first (the common path),
-     date and vehicle below.
-   - New "Save & Add Another" button keeps the form open and clears
-     only kg and birds, so several traders can be entered quickly.
-   - Cursor lands in Kg automatically.
+6. WHATSAPP BUTTON REMOVED from the Payout page, along with the now
+   unused function behind it.
 
-7. AVERAGE WEIGHT -> 3 DECIMALS
-   Applied at all 7 display points. Also fixed a separate bug found
-   on the way: the sale entries table was printing the raw unrounded
-   number (0.8571428571428571) instead of a rounded one.
+7. CLOSED BATCH HISTORY - "No completed sale history yet"
+   Cause found: closed batches are deliberately excluded from the
+   main data load, so the history screen had nothing to read. There
+   was no way to fix this in the app alone.
+   Added a new backend action (getBatchHistory) that fetches a closed
+   batch's sales, mortality and payouts on demand. The history screen
+   now falls back to it automatically when local data is empty.
+   Note: I verified the exact spreadsheet column positions before
+   writing this rather than assuming - my first attempt had them
+   wrong and would have shown blank/incorrect figures.
 
-8. ASSUMPTIONS MOVED
-   Out of the top-right header, now a button on the Settings page.
-
-ALSO CLEANED UP
----------------
-Removed 5 dead functions (selectedSaleMeta, selectedSaleMetaFromModal,
-toggleSaleOther, toggleSaleModalOther, saleOptionValues). These
-referenced page elements that no longer exist anywhere - leftovers
-from an earlier version.
-
-NOT DONE - FEED TRACKING
-------------------------
-I diagnosed it but did not change it. v55 rewrote this page to:
-  (a) show nothing until you pick a date, and
-  (b) fetch from the server via a getFeedTracking action instead of
-      using data already loaded.
-That action DOES exist in the Code.gs you have. So "not working"
-could mean the empty-until-you-pick-a-date behaviour looking broken,
-or a real server error.
-
-Please open Feed Tracking, pick a From date, and tell me exactly what
-appears on screen. I did not want to guess and rewrite a working page.
+8. FEED TRACKING NOT WORKING
+   Cause found: the page asks you to "select a date before loading",
+   but the date inputs were NEVER ADDED to the page. It was asking
+   for something impossible to give it.
+   Added the From / To date pickers, a Farm dropdown and a Clear
+   button. Verified data now loads.
 
 TESTING
 -------
-Ran in a real browser: Orders page (rows + all buttons), the full
-sales flow with two different vehicles, the approval warning firing
-only when exceeding, Assumptions in its new location, Feed page stage
-display with the 5-bag tolerance, and mobile layout at 390px.
+Real browser, desktop (1300px) and mobile (390px):
+Orders page + all buttons, Feed Order image generation, Feed Tracking
+loading data, sale entry flow with per-entry vehicles, column
+alignment, Edit button visibility (checked computed colour values),
+remaining birds tile, trader statement PDF headers and alignment,
+payout page, closed batch history via the new server action.
 Zero JavaScript errors in every test.
 
 DEPLOY
 ------
 Code.gs CHANGED - needs a real redeploy, not just a save:
   Deploy > Manage deployments > Edit > New version > Deploy
-The new "Vehicle No" column is added to Sale Entries automatically
-on first use. Existing sale entries keep working - they just show
-the sale-level vehicle until new entries are added.
+Then replace app.js, index.html and styles.css.
 
-Then replace app.js, index.html, styles.css as usual.
+Both Feed Tracking and Closed Batch History depend on the new
+Code.gs, so they will not work until it is redeployed.
