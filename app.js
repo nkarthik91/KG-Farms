@@ -1,6 +1,6 @@
 
 const API="https://script.google.com/macros/s/AKfycbzCl9ouCp-laRXNGRXr8GsJnRWbOXCgTrw4V6xDu6zKK2RTGcvwQ1NT7w6foOopHeRQ/exec";
-const APP_BUILD='v59';
+const APP_BUILD='v60';
 const FIREBASE_CONFIG={apiKey:"AIzaSyBDe-Yzj3jm0DeQKkNgdBkz8XjE5omOa00",authDomain:"kg-farms-de0f4.firebaseapp.com",databaseURL:"https://kg-farms-de0f4-default-rtdb.asia-southeast1.firebasedatabase.app",projectId:"kg-farms-de0f4"};
 let FIREBASE_READY=false;let LAST_LOAD_INFO='';let FORCE_LIVE_NEXT_LOAD=false;
 try{if(typeof firebase!=='undefined'){firebase.initializeApp(FIREBASE_CONFIG);FIREBASE_READY=true}}catch(e){console.error('Firebase init failed:',e)}
@@ -276,8 +276,54 @@ async function deleteDailyEntryConfirm(entryId){if(!confirm('Delete this daily e
 function bulkDaily(){let bs=(S.batches||[]).filter(b=>String(b.status||'Active').toLowerCase()!=='closed');if(!bs.length){toast('No active batches.','error');return}modal(`<div class=head><b>Bulk Daily Entry</b><button class=secondary onclick=closeModal()>✕</button></div><div class="muted" style="margin-bottom:10px">One date for all batches below. Leave a batch at 0/0 if there's nothing new to log for it today.</div><label>Date<input id="bulkDate" type="date" value="${dateToday()}"></label><div id="bulkRows" style="margin-top:12px;display:flex;flex-direction:column;gap:8px">${bs.map(b=>{let fb=(S.feed||[]).find(f=>f.batchId===b.batchId),cs=fb?effectiveStage(fb):'BPSC';return `<div class="bulkRow" data-batch="${esc(b.batchId)}"><div class="bulkRowHead"><b>${esc(b.farmName)}</b><span class="muted">${esc(b.batchId)} • ${b.currentBirds} live</span></div><div class="bulkRowFields"><label>Mortality<input type="number" min="0" value="0" class="bkMort"></label><label>Feed<select class="bkFeed">${STAGES.map(f=>`<option value="${f}" ${f===cs?'selected':''}>${f}</option>`).join('')}</select></label><label>Stock (bags)<input type="number" min="0" step="0.5" value="0" class="bkStock"></label><label>Weight (g)<input type="number" min="0" placeholder="optional" class="bkWeight"></label></div></div>`}).join('')}</div><div class="actions"><button class="secondary" onclick="closeModal()">Cancel</button><button onclick="submitBulkDaily()">Save All</button></div>`)}
 async function submitBulkDaily(){try{let dt=$('bulkDate').value;if(!dt){toast('Select a date','error');return}let rowsEls=document.querySelectorAll('.bulkRow'),entries=[];rowsEls.forEach(row=>{entries.push({batchId:row.dataset.batch,entryDate:dt,mortality:row.querySelector('.bkMort').value,feedType:row.querySelector('.bkFeed').value,feedStock:row.querySelector('.bkStock').value,sampleWeight:row.querySelector('.bkWeight').value,remarks:''})});let r=await post({action:'saveDailyEntries',entries:JSON.stringify(entries)});closeModal();await load();if(r.errors&&r.errors.length)toast('Saved '+r.saved+' of '+entries.length+' - check and retry: '+r.errors[0],'error');else toast('Saved '+r.saved+' entries','success')}catch(e){toast(e.message,'error')}}
 async function submitDaily(){try{let batchId=$('deBatch').value,entryDate=$('deDate').value,mortality=+$('deMort').value||0,feedType=$('deFeed').value,feedStock=$('deStock').value,sampleWeight=$('deWeight').value,remarks=$('deRemarks').value;if(!batchId||!entryDate){toast('Batch and date are required','error');return}let b=(S.batches||[]).find(x=>x.batchId===batchId);if(b&&mortality>b.currentBirds){if(!confirm('That\'s more than '+b.farmName+'\'s current live bird count ('+b.currentBirds+'). Continue anyway?'))return}await post({action:'saveDailyEntry',batchId,entryDate,mortality,feedType,feedStock,sampleWeight,remarks});closeModal();await load();toast('Daily entry saved','success')}catch(e){toast(e.message,'error')}}
-function openDirectSupplyModal(prefillBatchId,prefillFeedType){let bs=(S.batches||[]).filter(function(b){return String(b.status||'Active').toLowerCase()!=='closed'});if(!bs.length){toast('No active batches.','error');return}let batchId=prefillBatchId||bs[0].batchId,feedType=prefillFeedType||'BPSC';modal(`<div class=head><b>Direct Feed Supply</b><button class=secondary onclick=closeModal()>✕</button></div><div class=form><label class=full>Batch<select id="dsBatch">${bs.map(b=>`<option value="${esc(b.batchId)}" ${b.batchId===batchId?'selected':''}>${esc(b.farmName)} — ${esc(b.batchId)}</option>`).join('')}</select></label><label>Feed Type<select id="dsFeed">${STAGES.map(f=>`<option value="${f}" ${f===feedType?'selected':''}>${f}</option>`).join('')}</select></label><label>Supplied Qty (bags)<input id="dsQty" type="number" min="0.5" step="0.5"></label><label class=full>Supply Date<input id="dsDate" type="date" value="${dateToday()}"></label><label class=full>Remarks<textarea id="dsRemarks"></textarea></label></div><div class=actions><button class=secondary onclick=closeModal()>Cancel</button><button onclick="submitDirectSupply()">Save Supply</button></div>`)}
-async function submitDirectSupply(){try{let batchId=$('dsBatch').value,feedType=$('dsFeed').value,qty=$('dsQty').value,supplyDate=$('dsDate').value,remarks=$('dsRemarks').value;if(!qty||+qty<=0){toast('Enter a supply quantity','error');return}await post({action:'addFeedSupply',batchId,feedType,suppliedQty:qty,supplyDate,remarks});closeModal();await load();toast('Direct feed supply recorded','success')}catch(e){toast(e.message,'error')}}
+let DS_ROWS=[];
+function dsActiveBatches(){return (S.batches||[]).filter(function(b){return String(b.status||'Active').toLowerCase()!=='closed'})}
+function openDirectSupplyModal(prefillBatchId,prefillFeedType){
+ var bs=dsActiveBatches();
+ if(!bs.length){toast('No active batches.','error');return}
+ DS_ROWS=[{batchId:prefillBatchId||bs[0].batchId,feedType:prefillFeedType||'BPSC',qty:'',date:dateToday()}];
+ modal('<div class=head><b>Direct Feed Supply</b><button class=secondary onclick=closeModal()>✕</button></div>'
+ +'<div class="muted" style="margin-bottom:8px">Records feed as already delivered. Use the + button to add more farms.</div>'
+ +'<div id="dsWrap"></div>'
+ +'<label class=full style="margin-top:10px">Remarks (applies to all rows)<textarea id="dsRemarks"></textarea></label>'
+ +'<div class=actions><button class=secondary onclick=closeModal()>Cancel</button><button onclick="submitDirectSupply()">Save Supply</button></div>');
+ renderDsRows();
+}
+function renderDsRows(){
+ var el=$('dsWrap');if(!el)return;
+ var bs=dsActiveBatches();
+ el.innerHTML='<div class="dsTable">'
+  +'<div class="dsHead"><span>Farm Name</span><span>Feed Type</span><span>Bags</span><span>Delivery Date</span><span></span></div>'
+  +DS_ROWS.map(function(r,i){
+    return '<div class="dsRow">'
+     +'<select onchange="dsSet('+i+',\'batchId\',this.value)">'+bs.map(function(b){return '<option value="'+esc(b.batchId)+'"'+(b.batchId===r.batchId?' selected':'')+'>'+esc(b.farmName)+'</option>'}).join('')+'</select>'
+     +'<select onchange="dsSet('+i+',\'feedType\',this.value)">'+STAGES.map(function(f){return '<option value="'+f+'"'+(f===r.feedType?' selected':'')+'>'+f+'</option>'}).join('')+'</select>'
+     +'<input type="number" min="0.5" step="0.5" inputmode="decimal" placeholder="0" value="'+esc(r.qty)+'" oninput="dsSet('+i+',\'qty\',this.value)">'
+     +'<input type="date" value="'+esc(r.date)+'" onchange="dsSet('+i+',\'date\',this.value)">'
+     +(DS_ROWS.length>1?'<button class="iconBtn danger dsDel" title="Remove row" onclick="dsRemove('+i+')">×</button>':'<span></span>')
+     +'</div>'
+   }).join('')
+  +'</div>'
+  +'<button class="secondary dsAdd" onclick="dsAdd()">+ Add Row</button>';
+}
+function dsSet(i,k,v){if(DS_ROWS[i])DS_ROWS[i][k]=v}
+function dsAdd(){var last=DS_ROWS[DS_ROWS.length-1]||{};var bs=dsActiveBatches();DS_ROWS.push({batchId:last.batchId||bs[0].batchId,feedType:last.feedType||'BPSC',qty:'',date:last.date||dateToday()});renderDsRows()}
+function dsRemove(i){DS_ROWS.splice(i,1);if(!DS_ROWS.length)DS_ROWS.push({batchId:dsActiveBatches()[0].batchId,feedType:'BPSC',qty:'',date:dateToday()});renderDsRows()}
+async function submitDirectSupply(){
+ try{
+  var remarks=$('dsRemarks')?$('dsRemarks').value:'';
+  var items=[];
+  for(var i=0;i<DS_ROWS.length;i++){
+   var r=DS_ROWS[i],q=Number(r.qty);
+   if(!r.qty||!Number.isFinite(q)||q<=0){toast('Row '+(i+1)+': enter the number of bags','error');return}
+   if(!r.date){toast('Row '+(i+1)+': choose a delivery date','error');return}
+   items.push({batchId:r.batchId,feedType:r.feedType,qty:q,supplyDate:r.date,remarks:remarks});
+  }
+  await post({action:'addFeedSupplies',items:JSON.stringify(items)});
+  closeModal();await load();refreshCurrentPage();
+  toast(items.length===1?'Direct feed supply recorded':items.length+' feed supplies recorded','success');
+ }catch(e){toast(e.message,'error')}
+}
 async function cancelOrder(orderNo,batchId,feedType){if(!confirm('Cancel this order? This cannot be undone.'))return;try{await post({action:'cancelOrder',orderNo,batchId,feedType});await load();refreshCurrentPage();toast('Order cancelled','success')}catch(e){toast(e.message,'error')}}
 async function approveFeedOrderConfirm(orderNo,batchId,feedType){if(!confirm('Approve this order? It will become available for supply.'))return;try{await post({action:'approveFeedOrder',orderNo,batchId,feedType});await load();refreshCurrentPage();toast('Order approved','success')}catch(e){toast(e.message,'error')}}
 async function rejectFeedOrderConfirm(orderNo,batchId,feedType){let reason=prompt('Reason for rejecting this order (optional, Cancel to abort):');if(reason===null)return;try{await post({action:'rejectFeedOrder',orderNo,reason,batchId,feedType});await load();refreshCurrentPage();toast('Order rejected','success')}catch(e){toast(e.message,'error')}}
