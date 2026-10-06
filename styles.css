@@ -342,3 +342,5 @@ nav button .ni{display:block;font-size:17px;line-height:1.1;margin-bottom:2px}
  nav #nfeed:before,nav #norders:before,nav #nvax:before,nav #nmore:before,nav #nfarm:before{content:none!important;display:none!important}
  nav button{flex-direction:column!important;gap:0!important}
 }
+.ordersBar{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:6px 0 10px;padding:8px 10px;background:#f1f7f1;border:1px solid var(--line);border-radius:12px;position:sticky;top:64px;z-index:3}.ordAll{display:flex;align-items:center;gap:8px;font-weight:700;font-size:14px}.ordChk,.ordersBar input[type=checkbox]{width:20px;height:20px;min-height:0;padding:0;accent-color:var(--g);flex:none}.mobileCardTop .ordChk{margin-right:10px;align-self:center}
+.bsRow{display:flex;justify-content:space-between;align-items:center;gap:10px;border-bottom:1px solid var(--line);padding:8px 0}.bsQty{width:90px;text-align:center}
