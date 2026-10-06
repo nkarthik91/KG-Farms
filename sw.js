@@ -1,34 +1,17 @@
-const CACHE='kg-farms-v58';
+const CACHE='kg-farms-min-v61';
 const ASSETS=['./','./index.html','./styles.css','./app.js','./manifest.json','./favicon.ico','./favicon-32.png','./icons/icon-180.png','./icons/icon-192.png','./icons/icon-512.png','./icons/icon-512-maskable.png','./icons/logo.png'];
-self.addEventListener('install',e=>{
-  e.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS)).catch(()=>{}).then(()=>self.skipWaiting()));
-});
-self.addEventListener('activate',e=>{
-  e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim()));
-});
+self.addEventListener('install',e=>{e.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS)).catch(()=>{}).then(()=>self.skipWaiting()))});
+self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim()))});
 self.addEventListener('fetch',e=>{
   if(e.request.method!=='GET')return;
   const u=new URL(e.request.url);
-  // Never intercept the Apps Script API - always hit the network for live data.
+  // Never touch the Apps Script API - always live data.
   if(u.hostname.endsWith('script.google.com'))return;
-  if(u.origin===location.origin){
-    // App shell: network-first. Always serve the latest deployed files when
-    // online, so updates show up immediately instead of being stuck behind
-    // a stale cache. Cache is refreshed on every successful fetch and used
-    // only as an offline fallback.
-    e.respondWith(
-      fetch(e.request).then(res=>{
-        // Clone SYNCHRONOUSLY. Cloning inside the async caches.open().then()
-        // fails with "Response body is already used" because the page has
-        // started reading `res` by the time that callback runs.
-        if(res && res.ok){
-          const copy=res.clone();
-          caches.open(CACHE).then(c=>c.put(e.request,copy)).catch(()=>{});
-        }
-        return res;
-      }).catch(()=>caches.match(e.request))
-    );
-    return;
-  }
-  e.respondWith(fetch(e.request).catch(()=>caches.match(e.request)));
+  if(u.origin!==location.origin)return;
+  // App files: show the saved copy INSTANTLY, refresh it quietly in the background.
+  // (A new version of the app appears the next time it is opened.)
+  e.respondWith(caches.open(CACHE).then(cache=>cache.match(e.request).then(hit=>{
+    const net=fetch(e.request).then(res=>{if(res&&res.ok)cache.put(e.request,res.clone());return res}).catch(()=>hit);
+    return hit||net;
+  })));
 });
