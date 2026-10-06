@@ -325,3 +325,20 @@ button:disabled{cursor:not-allowed}
  .dsRow input[type=date]{grid-column:1/-1}
  .dsRow .dsDel{position:absolute;top:6px;right:6px;width:28px;height:28px}
 }
+
+/* ---- v61 polish: labelled farm actions, nav icons, call link ---- */
+.farmAct{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:40px;padding:0 14px;border:1px solid var(--line);border-radius:11px;background:#fff;color:var(--g,#24752d);font-weight:800;font-size:13px;cursor:pointer}
+.farmAct:hover{background:#f1f8f2}
+.farmAct.closeAct{border-color:#f3c6c1;color:#b42318}
+.farmAct.closeAct:hover{background:#fdeceb}
+.farmMobileActions{display:flex;gap:8px;margin-top:10px}.farmMobileActions .farmAct{flex:1}
+.farmCall{display:inline-block;margin-top:10px;color:var(--g,#24752d);font-weight:800;font-size:13px;text-decoration:none}
+.farmMobileGrid{grid-template-columns:1fr 1fr}
+nav button .ni{display:block;font-size:17px;line-height:1.1;margin-bottom:2px}
+@media(min-width:761px){nav button .ni{display:inline;margin:0 8px 0 0;font-size:15px}}
+@media(max-width:760px){nav button{display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:11px;padding:7px 4px}}
+@media(max-width:760px){
+ nav #nfarm{display:flex!important;align-items:center!important;justify-content:center!important}
+ nav #nfeed:before,nav #norders:before,nav #nvax:before,nav #nmore:before,nav #nfarm:before{content:none!important;display:none!important}
+ nav button{flex-direction:column!important;gap:0!important}
+}

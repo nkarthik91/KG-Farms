@@ -1,4 +1,4 @@
-const CACHE='kg-farms-min-v61';
+const CACHE='kg-farms-min-v62';
 const ASSETS=['./','./index.html','./styles.css','./app.js','./manifest.json','./favicon.ico','./favicon-32.png','./icons/icon-180.png','./icons/icon-192.png','./icons/icon-512.png','./icons/icon-512-maskable.png','./icons/logo.png'];
 self.addEventListener('install',e=>{e.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS)).catch(()=>{}).then(()=>self.skipWaiting()))});
 self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim()))});
